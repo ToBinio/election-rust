@@ -74,11 +74,11 @@ impl VotingDisplay {
         write!(self.term, "{}", style("Candidates").bold())?;
 
         for (index, name) in self.candidates.iter().enumerate().map(|(index, name)| {
-            return if name.len() > width {
+            if name.len() > width {
                 (index, format!("{}...", &name[..17]))
             } else {
                 (index, name.to_string())
-            };
+            }
         }) {
             self.term.move_cursor_to(0, index + 1)?;
             write!(self.term, "{}", name)?;

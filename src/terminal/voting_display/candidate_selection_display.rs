@@ -35,13 +35,13 @@ impl CandidateSelectionDisplay {
         term: &mut Term,
         start_x: usize,
         start_y: usize,
-        width: usize,
+        _width: usize,
         preview: &str,
     ) -> anyhow::Result<()> {
         term.move_cursor_to(start_x, start_y)?;
         write!(term, "{}", style(&self.header).bold())?;
 
-        if self.search_text.len() > 0 {
+        if !self.search_text.is_empty() {
             term.move_cursor_to(start_x, start_y + 1)?;
             write!(term, "{}", style(preview).green())?;
         }

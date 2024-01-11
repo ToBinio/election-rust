@@ -1,5 +1,5 @@
 use crate::candidates::{save_candidates, FILE_PATH};
-use console::{style, Term};
+use console::Term;
 use std::io::Write;
 
 pub struct CandidateDisplay {
@@ -31,10 +31,6 @@ impl CandidateDisplay {
                 Ok(CandidateDisplayState::Reading)
             }
         };
-    }
-
-    pub fn candidates(&self) -> &Vec<String> {
-        &self.candidates
     }
 }
 
