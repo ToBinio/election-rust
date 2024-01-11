@@ -1,10 +1,34 @@
-use crate::terminal::{Terminal, TerminalState};
+use crate::candidates::{load_candidates, FILE_PATH};
+use crate::cli::{Cli, SubCommands};
+use crate::terminal::candidate_display::{CandidateDisplay, CandidateDisplayState};
+use crate::terminal::voting_display::{VotingDisplay, VotingDisplayState};
+use clap::Parser;
 
 mod terminal;
 mod utils;
 
-fn main() {
-    let mut terminal = Terminal::new();
+mod cli;
 
-    while terminal.handle_input().unwrap() != &TerminalState::Done {}
+mod candidates;
+
+fn main() {
+    let cli = Cli::parse();
+
+    match cli.command {
+        None => match load_candidates(FILE_PATH) {
+            Ok(candidates) => {
+                let mut display = VotingDisplay::new(candidates);
+                while display.handle_input().unwrap() != VotingDisplayState::Done {}
+            }
+            Err(_) => {
+                println!("could not file candidates.txt :8")
+            }
+        },
+        Some(subcommand) => match subcommand {
+            SubCommands::Candidates => {
+                let mut display = CandidateDisplay::new();
+                while display.handle_input().unwrap() != CandidateDisplayState::Done {}
+            }
+        },
+    }
 }

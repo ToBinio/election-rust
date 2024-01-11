@@ -1,21 +1,21 @@
 use crate::terminal::voting_display::candidate_selection_display::CandidateSelectionDisplay;
-use crate::utils::get_fitting_names;
 use anyhow::anyhow;
 use console::{style, Key, Term};
 use std::io::Write;
 
 pub mod candidate_selection_display;
 
-#[derive(PartialEq)]
 pub struct VotingDisplay {
     candidates: Vec<String>,
     candidate_selections: Vec<CandidateSelectionDisplay>,
     candidate_selections_index: usize,
+    term: Term,
 }
 
 impl VotingDisplay {
     pub fn new(candidates: Vec<String>) -> VotingDisplay {
         VotingDisplay {
+            term: Term::buffered_stdout(),
             candidates,
             candidate_selections: vec![
                 CandidateSelectionDisplay::new("First".to_string()),
@@ -25,14 +25,14 @@ impl VotingDisplay {
         }
     }
 
-    pub fn handle_input(&mut self, term: &mut Term) -> anyhow::Result<VotingDisplayState> {
-        term.clear_screen()?;
+    pub fn handle_input(&mut self) -> anyhow::Result<VotingDisplayState> {
+        self.term.clear_last_lines(self.term.size().0 as usize)?;
 
-        self.display_candidates(term, 0, 20)?;
+        self.display_candidates(0, 20)?;
 
         for (index, candidate_selection_display) in self.candidate_selections.iter().enumerate() {
             candidate_selection_display.display(
-                term,
+                &mut self.term,
                 25,
                 index * 2,
                 20,
@@ -47,14 +47,14 @@ impl VotingDisplay {
             .get_mut(self.candidate_selections_index)
             .ok_or(anyhow!("invalid selection index"))?;
 
-        term.move_cursor_to(
+        self.term.move_cursor_to(
             25 + selected_selection.search_width(),
             self.candidate_selections_index * 2 + 1,
         )?;
 
-        term.flush()?;
+        self.term.flush()?;
 
-        let key = term.read_key()?;
+        let key = self.term.read_key()?;
 
         match key {
             Key::Enter => {
@@ -69,14 +69,9 @@ impl VotingDisplay {
         Ok(VotingDisplayState::Voting)
     }
 
-    fn display_candidates(
-        &mut self,
-        term: &mut Term,
-        start_x: usize,
-        width: usize,
-    ) -> anyhow::Result<()> {
-        term.move_cursor_to(start_x, 0)?;
-        write!(term, "{}", style("Candidates").bold())?;
+    fn display_candidates(&mut self, start_x: usize, width: usize) -> anyhow::Result<()> {
+        self.term.move_cursor_to(start_x, 0)?;
+        write!(self.term, "{}", style("Candidates").bold())?;
 
         for (index, name) in self.candidates.iter().enumerate().map(|(index, name)| {
             return if name.len() > width {
@@ -85,14 +80,15 @@ impl VotingDisplay {
                 (index, name.to_string())
             };
         }) {
-            term.move_cursor_to(0, index + 1)?;
-            write!(term, "{}", name)?;
+            self.term.move_cursor_to(0, index + 1)?;
+            write!(self.term, "{}", name)?;
         }
 
         Ok(())
     }
 }
 
+#[derive(PartialEq)]
 pub enum VotingDisplayState {
     Voting,
     Done,

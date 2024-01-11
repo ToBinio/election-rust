@@ -2,7 +2,6 @@ use crate::utils::get_fitting_names;
 use console::{style, Key, Term};
 use std::io::Write;
 
-#[derive(PartialEq)]
 pub struct CandidateSelectionDisplay {
     search_text: String,
     selected_preview: usize,
