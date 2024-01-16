@@ -1,15 +1,13 @@
-use crate::candidates::{load_candidates, FILE_PATH};
 use crate::cli::{Cli, SubCommands};
 use crate::terminal::candidate_display::{CandidateDisplay, CandidateDisplayState};
 use crate::terminal::voting_display::{VotingDisplay, VotingDisplayState};
+use crate::utils::candidate::{load_candidates, FILE_PATH};
 use clap::Parser;
 
 mod terminal;
 mod utils;
 
 mod cli;
-
-mod candidates;
 
 fn main() {
     let cli = Cli::parse();

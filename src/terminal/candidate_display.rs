@@ -1,4 +1,4 @@
-use crate::candidates::{save_candidates, FILE_PATH};
+use crate::utils::candidate::{save_candidates, FILE_PATH};
 use console::Term;
 use std::io::Write;
 
