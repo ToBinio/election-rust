@@ -1,8 +1,9 @@
 use crate::terminal::voting_display::ballot_paper_display::{BallotPaper, BallotPaperDisplay};
 use crate::terminal::voting_display::candidate_selection_display::CandidateSelectionDisplay;
 use crate::utils::candidate::Candidate;
+use crate::utils::{elepesed_text, get_fitting_names};
 use anyhow::anyhow;
-use console::{style, Key, Term};
+use console::{style, Key, Style, Term};
 use std::io::Write;
 
 pub mod candidate_selection_display;
@@ -125,22 +126,16 @@ impl VotingDisplay {
         self.term.move_cursor_to(start_x, 0)?;
         write!(self.term, "{}", style("Candidates").bold())?;
 
-        for (index, name) in self
-            .candidates
-            .iter()
-            .enumerate()
-            .map(|(index, candidate)| {
-                let name = &candidate.name;
-
-                if name.len() > width {
-                    (index, format!("{}...", &name[..17]))
-                } else {
-                    (index, name.to_string())
-                }
-            })
-        {
+        for (index, candidate) in self.candidates.iter().enumerate() {
             self.term.move_cursor_to(0, index + 1)?;
-            write!(self.term, "{}", name)?;
+
+            write!(
+                self.term,
+                "{}|{} {}",
+                style(candidate.get_sum()).red(),
+                candidate.get_first_votes(),
+                elepesed_text(&candidate.name, 20)
+            )?;
         }
 
         Ok(())

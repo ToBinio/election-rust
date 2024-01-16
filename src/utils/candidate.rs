@@ -10,12 +10,16 @@ impl Candidate {
     pub fn new(name: String, size: usize) -> Candidate {
         Candidate {
             name,
-            votes: Vec::with_capacity(size),
+            votes: vec![0; size],
         }
     }
 
     pub fn vote(&mut self, level: usize) {
         self.votes[level] += 1;
+    }
+
+    pub fn get_first_votes(&self) -> usize {
+        self.votes[0]
     }
 
     pub fn get_sum(&self) -> usize {
