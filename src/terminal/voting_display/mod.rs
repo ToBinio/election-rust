@@ -11,6 +11,7 @@ pub mod candidate_selection_display;
 pub mod ballot_paper_display;
 
 pub struct VotingDisplay {
+    invalid_count: usize,
     candidates: Vec<Candidate>,
     candidate_selections: Vec<CandidateSelectionDisplay>,
     candidate_selections_index: usize,
@@ -23,6 +24,7 @@ pub struct VotingDisplay {
 impl VotingDisplay {
     pub fn new(candidates: Vec<Candidate>) -> VotingDisplay {
         VotingDisplay {
+            invalid_count: 0,
             term: Term::buffered_stdout(),
             candidates,
             candidate_selections: vec![
@@ -101,6 +103,30 @@ impl VotingDisplay {
                 selected_selection.handle_keys(&key, &self.candidates);
             }
             (Key::Char(' '), true) => {
+                if self
+                    .candidate_selections
+                    .iter()
+                    .enumerate()
+                    .find(|(index, selection)| {
+                        !selection.is_valid(&self.candidate_selections, &self.candidates, *index)
+                    })
+                    .is_some()
+                {
+                    self.invalid_count += 1;
+                } else {
+                    for (index, display) in self.candidate_selections.iter_mut().enumerate() {
+                        if let Some(name) = display.selected_candidate(&self.candidates) {
+                            if let Some(candidate) = self
+                                .candidates
+                                .iter_mut()
+                                .find(|candidate| &candidate.name == &name)
+                            {
+                                candidate.vote(index)
+                            }
+                        }
+                    }
+                }
+
                 self.ballot_display.add_paper(BallotPaper::new(
                     self.candidate_selections
                         .iter()
@@ -124,10 +150,11 @@ impl VotingDisplay {
 
     fn display_candidates(&mut self, start_x: usize, width: usize) -> anyhow::Result<()> {
         self.term.move_cursor_to(start_x, 0)?;
-        write!(self.term, "{}", style("Candidates").bold())?;
+        writeln!(self.term, "{}", style("Candidates").bold())?;
+        writeln!(self.term, "{} {}", self.invalid_count, "Invalid")?;
 
         for (index, candidate) in self.candidates.iter().enumerate() {
-            self.term.move_cursor_to(0, index + 1)?;
+            self.term.move_cursor_to(0, index + 2)?;
 
             write!(
                 self.term,
