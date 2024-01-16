@@ -1,4 +1,3 @@
-use clap::builder::Str;
 use console::Term;
 use std::io::Write;
 
@@ -25,7 +24,12 @@ impl BallotPaperDisplay {
         self.papers.push(paper);
     }
 
-    pub fn display(&mut self, term: &mut Term, start_x: usize, width: usize) -> anyhow::Result<()> {
+    pub fn display(
+        &mut self,
+        term: &mut Term,
+        start_x: usize,
+        _width: usize,
+    ) -> anyhow::Result<()> {
         term.move_cursor_to(start_x, 0)?;
 
         let mut y = 0;

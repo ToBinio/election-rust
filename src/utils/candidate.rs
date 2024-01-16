@@ -40,7 +40,7 @@ pub fn load_candidates<P: AsRef<Path>>(path: P) -> anyhow::Result<Vec<Candidate>
         .collect())
 }
 
-pub fn save_candidates<P: AsRef<Path>>(path: P, candidates: &Vec<String>) -> anyhow::Result<()> {
+pub fn save_candidates<P: AsRef<Path>>(path: P, candidates: &[String]) -> anyhow::Result<()> {
     let content = candidates.join("\n").to_string();
 
     fs::write(path, content)?;

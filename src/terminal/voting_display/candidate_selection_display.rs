@@ -25,8 +25,8 @@ impl CandidateSelectionDisplay {
 
     pub fn is_valid(
         &self,
-        others: &Vec<CandidateSelectionDisplay>,
-        candidates: &Vec<Candidate>,
+        others: &[CandidateSelectionDisplay],
+        candidates: &[Candidate],
         own_index: usize,
     ) -> bool {
         let candidate = self.selected_candidate(candidates);
@@ -35,16 +35,15 @@ impl CandidateSelectionDisplay {
             .iter()
             .enumerate()
             .filter(|(other_index, _)| own_index != *other_index)
-            .find(|(_, other)| other.selected_candidate(candidates) == candidate)
-            .is_some()
+            .any(|(_, other)| other.selected_candidate(candidates) == candidate)
         {
             return false;
         }
 
-        self.search_text.is_empty() || self.possible_candidates_names(candidates).len() > 0
+        self.search_text.is_empty() || !self.possible_candidates_names(candidates).is_empty()
     }
 
-    fn possible_candidates_names(&self, candidates: &Vec<Candidate>) -> Vec<String> {
+    fn possible_candidates_names(&self, candidates: &[Candidate]) -> Vec<String> {
         get_fitting_names(
             candidates
                 .iter()
@@ -54,7 +53,7 @@ impl CandidateSelectionDisplay {
         )
     }
 
-    pub fn selected_candidate(&self, candidates: &Vec<Candidate>) -> Option<String> {
+    pub fn selected_candidate(&self, candidates: &[Candidate]) -> Option<String> {
         if self.search_text.is_empty() {
             return None;
         }
@@ -81,7 +80,7 @@ impl CandidateSelectionDisplay {
         write!(term, "{}", style(&self.header).bold())?;
 
         if !is_valid {
-            write!(term, " {}", "❌")?;
+            write!(term, " ❌")?;
         }
 
         term.move_cursor_to(start_x, start_y + 1)?;
@@ -93,7 +92,7 @@ impl CandidateSelectionDisplay {
         Ok(())
     }
 
-    pub fn handle_keys(&mut self, key: &Key, candidates: &Vec<Candidate>) {
+    pub fn handle_keys(&mut self, key: &Key, candidates: &[Candidate]) {
         let previews = self.possible_candidates_names(candidates);
 
         match key {
