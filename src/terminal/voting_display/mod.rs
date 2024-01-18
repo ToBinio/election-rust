@@ -66,7 +66,8 @@ impl VotingDisplay {
             )?;
         }
 
-        self.ballot_display.display(&mut self.term, 50, 25)?;
+        self.ballot_display
+            .display(&mut self.term, 50, 25, self.ballot_selection_index)?;
 
         self.position_cursor()?;
 
@@ -201,8 +202,15 @@ impl VotingDisplay {
                 }
             }
             VotingDisplayMode::Edit => {
-                self.term
-                    .move_cursor_to(50, 4 * self.ballot_selection_index)?;
+                let (above, offset) =
+                    BallotPaperDisplay::get_list_offset(&self.term, self.ballot_selection_index);
+
+                if offset != 0 {
+                    self.term.move_cursor_to(50, 4 * above)?;
+                } else {
+                    self.term
+                        .move_cursor_to(50, 4 * self.ballot_selection_index)?;
+                }
             }
         }
 
