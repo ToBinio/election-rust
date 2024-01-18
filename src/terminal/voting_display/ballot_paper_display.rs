@@ -1,13 +1,19 @@
-use console::Term;
+use console::{style, Term};
 use std::io::Write;
 
 pub struct BallotPaper {
-    voting: Vec<String>,
+    pub voting: Vec<String>,
+    disabled: bool,
+    pub invalid: bool,
 }
 
 impl BallotPaper {
-    pub fn new(voting: Vec<String>) -> BallotPaper {
-        BallotPaper { voting }
+    pub fn new(voting: Vec<String>, invalid: bool) -> BallotPaper {
+        BallotPaper {
+            voting,
+            disabled: false,
+            invalid,
+        }
     }
 }
 
@@ -24,6 +30,18 @@ impl BallotPaperDisplay {
         self.papers.push(paper);
     }
 
+    pub fn disable(&mut self, index: usize) {
+        self.papers[index].disabled = true;
+    }
+
+    pub fn get_paper(&self, index: usize) -> &BallotPaper {
+        &self.papers[index]
+    }
+
+    pub fn len(&self) -> usize {
+        self.papers.len()
+    }
+
     pub fn display(
         &mut self,
         term: &mut Term,
@@ -34,14 +52,22 @@ impl BallotPaperDisplay {
 
         let mut y = 0;
 
-        for (usize, paper) in self.papers.iter().enumerate() {
+        for (index, paper) in self.papers.iter().enumerate() {
             term.move_cursor_to(start_x, y)?;
-            write!(term, "paper {}", usize)?;
+            if paper.disabled {
+                write!(term, "{}", style(format!("paper {}", index)).dim().white())?;
+            } else {
+                write!(term, "{}", style(format!("paper {}", index)))?;
+            }
             y += 1;
 
             for name in &paper.voting {
                 term.move_cursor_to(start_x, y)?;
-                write!(term, "{}", name)?;
+                if paper.disabled {
+                    write!(term, "{}", style(name).dim().white())?;
+                } else {
+                    write!(term, "{}", style(name))?;
+                }
                 y += 1;
             }
 

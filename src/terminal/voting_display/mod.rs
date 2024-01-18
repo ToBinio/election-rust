@@ -5,6 +5,7 @@ use crate::utils::{elepesed_text, get_fitting_names};
 use anyhow::anyhow;
 use console::{style, Key, Style, Term};
 use std::io::Write;
+use std::ops::Rem;
 
 pub mod candidate_selection_display;
 
@@ -17,8 +18,11 @@ pub struct VotingDisplay {
     candidate_selections_index: usize,
 
     ballot_display: BallotPaperDisplay,
+    ballot_selection_index: usize,
 
     term: Term,
+
+    mode: VotingDisplayMode,
 }
 
 impl VotingDisplay {
@@ -33,6 +37,8 @@ impl VotingDisplay {
             ],
             candidate_selections_index: 0,
             ballot_display: BallotPaperDisplay::new(),
+            mode: VotingDisplayMode::New,
+            ballot_selection_index: 0,
         }
     }
 
@@ -62,39 +68,56 @@ impl VotingDisplay {
 
         self.ballot_display.display(&mut self.term, 50, 25)?;
 
-        let is_on_done_button = self.candidate_selections_index == self.candidate_selections.len();
-
-        if is_on_done_button {
-            self.term
-                .move_cursor_to(25, 2 * self.candidate_selections.len())?;
-
-            write!(self.term, "{}", style("Done").on_yellow().bold())?;
-        } else {
-            self.term
-                .move_cursor_to(25, 2 * self.candidate_selections.len())?;
-            write!(self.term, "{}", style("Done").yellow().bold())?;
-
-            let selected_selection = self
-                .candidate_selections
-                .get_mut(self.candidate_selections_index)
-                .ok_or(anyhow!("invalid selection index"))?;
-
-            self.term.move_cursor_to(
-                25 + selected_selection.search_width(),
-                self.candidate_selections_index * 2 + 1,
-            )?;
-        }
+        self.position_cursor()?;
 
         self.term.flush()?;
 
+        self.handle_key()?;
+
+        Ok(VotingDisplayState::Voting)
+    }
+
+    fn handle_key(&mut self) -> anyhow::Result<()> {
         let key = self.term.read_key()?;
 
-        match (key, is_on_done_button) {
-            (Key::Enter, _) => {
+        match (&self.mode, key, self.is_on_done()) {
+            (VotingDisplayMode::New, Key::ArrowRight, _)
+            | (VotingDisplayMode::New, Key::ArrowLeft, _) => self.mode = VotingDisplayMode::Edit,
+            (VotingDisplayMode::Edit, Key::ArrowRight, _)
+            | (VotingDisplayMode::Edit, Key::ArrowLeft, _) => self.mode = VotingDisplayMode::New,
+            (VotingDisplayMode::New, Key::Enter, _) => {
                 self.candidate_selections_index += 1;
                 self.candidate_selections_index %= self.candidate_selections.len() + 1;
             }
-            (key, false) => {
+            (VotingDisplayMode::Edit, Key::ArrowUp, _) => {
+                self.ballot_selection_index += self.ballot_display.len();
+                self.ballot_selection_index -= 1;
+                self.ballot_selection_index %= self.ballot_display.len();
+            }
+            (VotingDisplayMode::Edit, Key::ArrowDown, _) => {
+                self.ballot_selection_index += 1;
+                self.ballot_selection_index %= self.ballot_display.len();
+            }
+            (VotingDisplayMode::Edit, Key::Del, _) => {
+                self.ballot_display.disable(self.ballot_selection_index);
+
+                let paper = self.ballot_display.get_paper(self.ballot_selection_index);
+
+                if paper.invalid {
+                    self.invalid_count -= 1;
+                } else {
+                    for (index, vote) in paper.voting.iter().enumerate() {
+                        if let Some(candidate) = self
+                            .candidates
+                            .iter_mut()
+                            .find(|candidate| &candidate.name == vote)
+                        {
+                            candidate.unvote(index)
+                        }
+                    }
+                }
+            }
+            (VotingDisplayMode::New, key, false) => {
                 let selected_selection = self
                     .candidate_selections
                     .get_mut(self.candidate_selections_index)
@@ -102,16 +125,17 @@ impl VotingDisplay {
 
                 selected_selection.handle_keys(&key, &self.candidates);
             }
-            (Key::Char(' '), true) => {
-                if self
+            (VotingDisplayMode::New, Key::Char(' '), true) => {
+                let in_valid = self
                     .candidate_selections
                     .iter()
                     .enumerate()
                     .find(|(index, selection)| {
                         !selection.is_valid(&self.candidate_selections, &self.candidates, *index)
                     })
-                    .is_some()
-                {
+                    .is_some();
+
+                if in_valid {
                     self.invalid_count += 1;
                 } else {
                     for (index, display) in self.candidate_selections.iter_mut().enumerate() {
@@ -136,16 +160,53 @@ impl VotingDisplay {
                                 .unwrap_or("".to_string())
                         })
                         .collect(),
+                    in_valid,
                 ));
 
                 for display in &mut self.candidate_selections {
                     display.clear();
                 }
             }
-            (_, _) => {}
+            (_, _, _) => {}
+        }
+        Ok(())
+    }
+
+    pub fn is_on_done(&self) -> bool {
+        self.candidate_selections_index == self.candidate_selections.len()
+    }
+
+    pub fn position_cursor(&mut self) -> anyhow::Result<()> {
+        match self.mode {
+            VotingDisplayMode::New => {
+                if self.is_on_done() {
+                    self.term
+                        .move_cursor_to(25, 2 * self.candidate_selections.len())?;
+
+                    write!(self.term, "{}", style("Done").on_yellow().bold())?;
+                } else {
+                    self.term
+                        .move_cursor_to(25, 2 * self.candidate_selections.len())?;
+                    write!(self.term, "{}", style("Done").yellow().bold())?;
+
+                    let selected_selection = self
+                        .candidate_selections
+                        .get_mut(self.candidate_selections_index)
+                        .ok_or(anyhow!("invalid selection index"))?;
+
+                    self.term.move_cursor_to(
+                        25 + selected_selection.search_width(),
+                        self.candidate_selections_index * 2 + 1,
+                    )?;
+                }
+            }
+            VotingDisplayMode::Edit => {
+                self.term
+                    .move_cursor_to(50, 4 * self.ballot_selection_index)?;
+            }
         }
 
-        Ok(VotingDisplayState::Voting)
+        Ok(())
     }
 
     fn display_candidates(&mut self, start_x: usize, width: usize) -> anyhow::Result<()> {
@@ -173,4 +234,10 @@ impl VotingDisplay {
 pub enum VotingDisplayState {
     Voting,
     Done,
+}
+
+#[derive(PartialEq)]
+pub enum VotingDisplayMode {
+    New,
+    Edit,
 }

@@ -96,18 +96,8 @@ impl CandidateSelectionDisplay {
         let previews = self.possible_candidates_names(candidates);
 
         match key {
-            Key::ArrowRight => {
-                if let Some(preview_text) = self.selected_candidate(candidates) {
-                    self.search_text = preview_text.to_string()
-                }
-            }
-            Key::ArrowUp => {
+            Key::Tab | Key::Char('\t') => {
                 self.selected_preview += 1;
-                self.selected_preview %= previews.len();
-            }
-            Key::ArrowDown => {
-                self.selected_preview += previews.len();
-                self.selected_preview -= 1;
                 self.selected_preview %= previews.len();
             }
             Key::Backspace => {
@@ -115,6 +105,12 @@ impl CandidateSelectionDisplay {
             }
             Key::Char(char) => {
                 self.search_text += &char.to_string();
+
+                if previews.len() == 0 {
+                    self.selected_preview = 0;
+                } else {
+                    self.selected_preview %= previews.len();
+                }
             }
             _ => {}
         }

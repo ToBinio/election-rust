@@ -17,6 +17,9 @@ impl Candidate {
     pub fn vote(&mut self, level: usize) {
         self.votes[level] += 1;
     }
+    pub fn unvote(&mut self, level: usize) {
+        self.votes[level] -= 1;
+    }
 
     pub fn get_first_votes(&self) -> usize {
         self.votes[0]
