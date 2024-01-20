@@ -1,21 +1,6 @@
+use crate::voting::ballot::BallotPaper;
 use console::{style, Term};
 use std::io::Write;
-
-pub struct BallotPaper {
-    pub voting: Vec<String>,
-    disabled: bool,
-    pub invalid: bool,
-}
-
-impl BallotPaper {
-    pub fn new(voting: Vec<String>, invalid: bool) -> BallotPaper {
-        BallotPaper {
-            voting,
-            disabled: false,
-            invalid,
-        }
-    }
-}
 
 pub struct BallotPaperDisplay {
     papers: Vec<BallotPaper>,

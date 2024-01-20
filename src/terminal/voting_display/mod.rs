@@ -1,7 +1,9 @@
-use crate::terminal::voting_display::ballot_paper_display::{BallotPaper, BallotPaperDisplay};
+use crate::terminal::voting_display::ballot_paper_display::BallotPaperDisplay;
 use crate::terminal::voting_display::candidate_selection_display::CandidateSelectionDisplay;
-use crate::utils::candidate::Candidate;
 use crate::utils::{elepesed_text, get_fitting_names};
+use crate::voting::ballot::BallotPaper;
+use crate::voting::candidate::Candidate;
+use crate::voting::Voting;
 use anyhow::anyhow;
 use console::{style, Key, Style, Term};
 use std::io::Write;
@@ -12,8 +14,7 @@ pub mod candidate_selection_display;
 pub mod ballot_paper_display;
 
 pub struct VotingDisplay {
-    invalid_count: usize,
-    candidates: Vec<Candidate>,
+    voting: Voting,
     candidate_selections: Vec<CandidateSelectionDisplay>,
     candidate_selections_index: usize,
 
@@ -26,11 +27,10 @@ pub struct VotingDisplay {
 }
 
 impl VotingDisplay {
-    pub fn new(candidates: Vec<Candidate>) -> VotingDisplay {
+    pub fn new(voting: Voting) -> VotingDisplay {
         VotingDisplay {
-            invalid_count: 0,
             term: Term::buffered_stdout(),
-            candidates,
+            voting,
             candidate_selections: vec![
                 CandidateSelectionDisplay::new("First".to_string()),
                 CandidateSelectionDisplay::new("Second".to_string()),
@@ -50,7 +50,7 @@ impl VotingDisplay {
         for (index, candidate_selection_display) in self.candidate_selections.iter().enumerate() {
             let is_valid = candidate_selection_display.is_valid(
                 &self.candidate_selections,
-                &self.candidates,
+                &self.voting.candidates,
                 index,
             );
 
@@ -60,7 +60,7 @@ impl VotingDisplay {
                 index * 2,
                 20,
                 &candidate_selection_display
-                    .selected_candidate(&self.candidates)
+                    .selected_candidate(&self.voting.candidates)
                     .unwrap_or("".to_string()),
                 is_valid,
             )?;
@@ -105,10 +105,11 @@ impl VotingDisplay {
                 let paper = self.ballot_display.get_paper(self.ballot_selection_index);
 
                 if paper.invalid {
-                    self.invalid_count -= 1;
+                    self.voting.unvote_invalid();
                 } else {
                     for (index, vote) in paper.voting.iter().enumerate() {
                         if let Some(candidate) = self
+                            .voting
                             .candidates
                             .iter_mut()
                             .find(|candidate| &candidate.name == vote)
@@ -124,7 +125,7 @@ impl VotingDisplay {
                     .get_mut(self.candidate_selections_index)
                     .ok_or(anyhow!("invalid selection index"))?;
 
-                selected_selection.handle_keys(&key, &self.candidates);
+                selected_selection.handle_keys(&key, &self.voting.candidates);
             }
             (VotingDisplayMode::New, Key::Char(' '), true) => {
                 let in_valid = self
@@ -132,16 +133,21 @@ impl VotingDisplay {
                     .iter()
                     .enumerate()
                     .find(|(index, selection)| {
-                        !selection.is_valid(&self.candidate_selections, &self.candidates, *index)
+                        !selection.is_valid(
+                            &self.candidate_selections,
+                            &self.voting.candidates,
+                            *index,
+                        )
                     })
                     .is_some();
 
                 if in_valid {
-                    self.invalid_count += 1;
+                    self.voting.vote_invalid();
                 } else {
                     for (index, display) in self.candidate_selections.iter_mut().enumerate() {
-                        if let Some(name) = display.selected_candidate(&self.candidates) {
+                        if let Some(name) = display.selected_candidate(&self.voting.candidates) {
                             if let Some(candidate) = self
+                                .voting
                                 .candidates
                                 .iter_mut()
                                 .find(|candidate| &candidate.name == &name)
@@ -157,7 +163,7 @@ impl VotingDisplay {
                         .iter()
                         .map(|candidate| {
                             candidate
-                                .selected_candidate(&self.candidates)
+                                .selected_candidate(&self.voting.candidates)
                                 .unwrap_or("".to_string())
                         })
                         .collect(),
@@ -220,9 +226,9 @@ impl VotingDisplay {
     fn display_candidates(&mut self, start_x: usize, width: usize) -> anyhow::Result<()> {
         self.term.move_cursor_to(start_x, 0)?;
         writeln!(self.term, "{}", style("Candidates").bold())?;
-        writeln!(self.term, "{} {}", self.invalid_count, "Invalid")?;
+        writeln!(self.term, "{} {}", self.voting.invalid(), "Invalid")?;
 
-        for (index, candidate) in self.candidates.iter().enumerate() {
+        for (index, candidate) in self.voting.candidates.iter().enumerate() {
             self.term.move_cursor_to(0, index + 2)?;
 
             write!(
