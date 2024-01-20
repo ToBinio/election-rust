@@ -1,5 +1,3 @@
-use crate::utils::candidate::Candidate;
-
 pub mod candidate;
 
 pub fn get_fitting_names(names: Vec<String>, search: &String) -> Vec<String> {

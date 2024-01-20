@@ -1,41 +1,31 @@
+use crate::terminal::voting_display::VotingDisplayMode;
 use crate::voting::ballot::BallotPaper;
-use console::{style, Term};
+use crate::voting::candidate::Candidate;
+use crate::voting::Voting;
+use console::{style, Key, Term};
 use std::io::Write;
 
 pub struct BallotPaperDisplay {
-    papers: Vec<BallotPaper>,
+    pub current_index: usize,
 }
 
 impl BallotPaperDisplay {
     pub fn new() -> BallotPaperDisplay {
-        BallotPaperDisplay { papers: vec![] }
-    }
-
-    pub fn add_paper(&mut self, paper: BallotPaper) {
-        self.papers.push(paper);
-    }
-
-    pub fn disable(&mut self, index: usize) {
-        self.papers[index].disabled = true;
-    }
-
-    pub fn get_paper(&self, index: usize) -> &BallotPaper {
-        &self.papers[index]
-    }
-
-    pub fn len(&self) -> usize {
-        self.papers.len()
+        BallotPaperDisplay { current_index: 0 }
     }
 
     /// returns (how many elements above center, offset)
-    pub fn get_list_offset(term: &Term, current_index: usize) -> (usize, usize) {
+    pub fn get_list_offset(&self, term: &Term) -> (usize, usize) {
         let height = term.size().0 as usize;
 
         //todo not for 4
         let visible_papers = height / 4;
         let above = visible_papers / 2;
 
-        (above, (current_index as i32 - above as i32).max(0) as usize)
+        (
+            above,
+            (self.current_index as i32 - above as i32).max(0) as usize,
+        )
     }
 
     pub fn display(
@@ -43,17 +33,17 @@ impl BallotPaperDisplay {
         term: &mut Term,
         start_x: usize,
         _width: usize,
-        current_index: usize,
+        papers: &Vec<BallotPaper>,
     ) -> anyhow::Result<()> {
         term.move_cursor_to(start_x, 0)?;
 
-        let (_, offset) = BallotPaperDisplay::get_list_offset(term, current_index);
+        let (_, offset) = self.get_list_offset(term);
 
         let height = term.size().0 as usize;
 
         let mut y = 0;
 
-        for (index, paper) in self.papers[(offset)..].iter().enumerate() {
+        for (index, paper) in papers[(offset)..].iter().enumerate() {
             if y > height {
                 break;
             }
@@ -84,5 +74,23 @@ impl BallotPaperDisplay {
         }
 
         Ok(())
+    }
+
+    pub fn handle_keys(&mut self, key: &Key, voting: &mut Voting) {
+        match key {
+            Key::ArrowUp => {
+                self.current_index += voting.papers.len();
+                self.current_index -= 1;
+                self.current_index %= voting.papers.len();
+            }
+            Key::ArrowDown => {
+                self.current_index += 1;
+                self.current_index %= voting.papers.len();
+            }
+            Key::Del => {
+                voting.disable_vote(self.current_index);
+            }
+            _ => {}
+        };
     }
 }
