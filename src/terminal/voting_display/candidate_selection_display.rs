@@ -1,4 +1,3 @@
-use crate::terminal::voting_display::VotingDisplayMode;
 use crate::utils::get_fitting_names;
 use crate::voting::candidate::Candidate;
 use crate::voting::Voting;
@@ -89,7 +88,7 @@ impl CandidateSelection {
             Key::Char(char) => {
                 self.search_text += &char.to_string();
 
-                if previews.len() == 0 {
+                if previews.is_empty() {
                     self.selected_preview = 0;
                 } else {
                     self.selected_preview %= previews.len();
@@ -112,20 +111,19 @@ impl CandidateSelectionDisplay {
         self.candidate_selections.push(candidate_selection);
     }
 
-    fn is_valid(&self, candidates: &Vec<Candidate>) -> bool {
+    fn is_valid(&self, candidates: &[Candidate]) -> bool {
         let is_invalid = self
             .candidate_selections
             .iter()
             .enumerate()
-            .find(|(index, selection)| {
-                !selection.is_valid(&self.candidate_selections, candidates, *index)
-            })
-            .is_some();
+            .any(|(index, selection)| {
+                !selection.is_valid(&self.candidate_selections, candidates, index)
+            });
 
         !is_invalid
     }
 
-    pub fn get_votes(&self, candidates: &Vec<Candidate>) -> Option<Vec<String>> {
+    pub fn get_votes(&self, candidates: &[Candidate]) -> Option<Vec<String>> {
         if !self.is_valid(candidates) {
             return None;
         }
@@ -157,11 +155,11 @@ impl CandidateSelectionDisplay {
         term: &mut Term,
         start_x: usize,
         _width: usize,
-        candidates: &Vec<Candidate>,
+        candidates: &[Candidate],
     ) -> anyhow::Result<()> {
         for (index, candidate_selection) in self.candidate_selections.iter().enumerate() {
             let is_valid =
-                candidate_selection.is_valid(&self.candidate_selections, &candidates, index);
+                candidate_selection.is_valid(&self.candidate_selections, candidates, index);
 
             let y = index * 2;
             let preview = candidate_selection

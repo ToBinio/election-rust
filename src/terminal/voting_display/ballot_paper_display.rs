@@ -1,6 +1,5 @@
-use crate::terminal::voting_display::VotingDisplayMode;
 use crate::voting::ballot::BallotPaper;
-use crate::voting::candidate::Candidate;
+
 use crate::voting::Voting;
 use console::{style, Key, Term};
 use std::io::Write;
@@ -33,7 +32,7 @@ impl BallotPaperDisplay {
         term: &mut Term,
         start_x: usize,
         _width: usize,
-        papers: &Vec<BallotPaper>,
+        papers: &[BallotPaper],
     ) -> anyhow::Result<()> {
         term.move_cursor_to(start_x, 0)?;
 

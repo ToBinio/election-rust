@@ -1,4 +1,3 @@
-use crate::terminal::voting_display::candidate_selection_display::CandidateSelection;
 use crate::voting::ballot::BallotPaper;
 use crate::voting::candidate::Candidate;
 

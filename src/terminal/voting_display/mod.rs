@@ -2,14 +2,12 @@ use crate::terminal::voting_display::ballot_paper_display::BallotPaperDisplay;
 use crate::terminal::voting_display::candidate_selection_display::{
     CandidateSelection, CandidateSelectionDisplay,
 };
-use crate::utils::{elepesed_text, get_fitting_names};
-use crate::voting::ballot::BallotPaper;
-use crate::voting::candidate::Candidate;
+use crate::utils::elepesed_text;
+
 use crate::voting::Voting;
-use anyhow::anyhow;
-use console::{style, Key, Style, Term};
+
+use console::{style, Key, Term};
 use std::io::Write;
-use std::ops::Rem;
 
 pub mod candidate_selection_display;
 
@@ -118,10 +116,10 @@ impl VotingDisplay {
         Ok(())
     }
 
-    fn display_candidates(&mut self, start_x: usize, width: usize) -> anyhow::Result<()> {
+    fn display_candidates(&mut self, start_x: usize, _width: usize) -> anyhow::Result<()> {
         self.term.move_cursor_to(start_x, 0)?;
         writeln!(self.term, "{}", style("Candidates").bold())?;
-        writeln!(self.term, "{} {}", self.voting.invalid(), "Invalid")?;
+        writeln!(self.term, "{} Invalid", self.voting.invalid())?;
 
         for (index, candidate) in self.voting.candidates.iter().enumerate() {
             self.term.move_cursor_to(0, index + 2)?;
