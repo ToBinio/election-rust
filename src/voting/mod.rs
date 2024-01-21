@@ -1,46 +1,80 @@
 use crate::voting::ballot::BallotPaper;
 use crate::voting::candidate::Candidate;
+use crate::voting::candidate_selection::CandidateSelection;
 
 pub mod candidate;
 
 pub mod ballot;
 
+pub mod candidate_selection;
+
 pub struct Voting {
+    pub candidate_selections: Vec<CandidateSelection>,
     pub candidates: Vec<Candidate>,
     pub papers: Vec<BallotPaper>,
     invalid_count: usize,
+
+    pub allowed_votes: usize,
 }
 
 impl Voting {
     pub fn new(candidates: Vec<Candidate>) -> Voting {
+        let mut candidate_selections = vec![];
+
+        candidate_selections.push(CandidateSelection::new("First".to_string()));
+        candidate_selections.push(CandidateSelection::new("Second".to_string()));
+
         Voting {
+            candidate_selections,
             candidates,
             papers: vec![],
             invalid_count: 0,
+            allowed_votes: 2,
         }
     }
 
-    pub fn vote(&mut self, votes: Option<Vec<String>>) {
-        match votes {
-            None => {
-                self.papers.push(BallotPaper::new(
-                    vec!["invalid".to_string(), "invalid".to_string()],
-                    true,
-                ));
-                self.invalid_count += 1;
-            }
-            Some(votes) => {
-                'outer: for (index, vote) in votes.iter().enumerate() {
-                    for candidate in &mut self.candidates {
-                        if candidate.name == *vote {
-                            candidate.vote(index);
-                            continue 'outer;
-                        }
+    pub fn clear_selections(&mut self) {
+        for selection in &mut self.candidate_selections {
+            selection.clear()
+        }
+    }
+
+    fn is_valid_selection(&self) -> bool {
+        let is_invalid = self
+            .candidate_selections
+            .iter()
+            .enumerate()
+            .any(|(index, selection)| {
+                !selection.is_valid(&self.candidate_selections, &self.candidates, index)
+            });
+
+        !is_invalid
+    }
+
+    pub fn vote(&mut self) {
+        if self.is_valid_selection() {
+            let votes: Vec<String> = self
+                .candidate_selections
+                .iter()
+                .filter_map(|selection| selection.selected_candidate(&self.candidates))
+                .collect();
+
+            'outer: for (index, vote) in votes.iter().enumerate() {
+                for candidate in &mut self.candidates {
+                    if candidate.name == *vote {
+                        candidate.vote(index);
+                        continue 'outer;
                     }
                 }
-
-                self.papers.push(BallotPaper::new(votes, false));
             }
+
+            self.papers.push(BallotPaper::new(votes, false));
+        } else {
+            self.papers.push(BallotPaper::new(
+                vec!["invalid".to_string(), "invalid".to_string()],
+                true,
+            ));
+            self.invalid_count += 1;
         }
     }
 

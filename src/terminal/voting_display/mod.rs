@@ -1,7 +1,5 @@
 use crate::terminal::voting_display::ballot_paper_display::BallotPaperDisplay;
-use crate::terminal::voting_display::candidate_selection_display::{
-    CandidateSelection, CandidateSelectionDisplay,
-};
+use crate::terminal::voting_display::candidate_selection_display::CandidateSelectionDisplay;
 use crate::utils::elepesed_text;
 
 use crate::voting::Voting;
@@ -26,17 +24,10 @@ pub struct VotingDisplay {
 
 impl VotingDisplay {
     pub fn new(voting: Voting) -> VotingDisplay {
-        let mut candidate_selection_display = CandidateSelectionDisplay::new();
-
-        candidate_selection_display
-            .add_candidate_selection(CandidateSelection::new("First".to_string()));
-        candidate_selection_display
-            .add_candidate_selection(CandidateSelection::new("Second".to_string()));
-
         VotingDisplay {
             term: Term::buffered_stdout(),
             voting,
-            candidate_selection_display,
+            candidate_selection_display: CandidateSelectionDisplay::new(),
             ballot_display: BallotPaperDisplay::new(),
             mode: VotingDisplayMode::New,
         }
@@ -46,12 +37,8 @@ impl VotingDisplay {
         self.term.clear_last_lines(self.term.size().0 as usize)?;
 
         self.display_candidates(0, 20)?;
-        self.candidate_selection_display.display(
-            &mut self.term,
-            25,
-            20,
-            &self.voting.candidates,
-        )?;
+        self.candidate_selection_display
+            .display(&mut self.term, 25, 20, &self.voting)?;
         self.ballot_display
             .display(&mut self.term, 50, 25, &self.voting.papers)?;
 
@@ -70,7 +57,7 @@ impl VotingDisplay {
         match (
             &self.mode,
             key,
-            self.candidate_selection_display.is_on_done(),
+            self.candidate_selection_display.is_on_done(&self.voting),
         ) {
             (VotingDisplayMode::New, Key::ArrowRight, _)
             | (VotingDisplayMode::New, Key::ArrowLeft, _) => self.mode = VotingDisplayMode::Edit,
@@ -91,12 +78,14 @@ impl VotingDisplay {
     pub fn position_cursor(&mut self) -> anyhow::Result<()> {
         match self.mode {
             VotingDisplayMode::New => {
-                if self.candidate_selection_display.is_on_done() {
+                if self.candidate_selection_display.is_on_done(&self.voting) {
                     self.term
-                        .move_cursor_to(25, 2 * self.candidate_selection_display.len())?;
+                        .move_cursor_to(25, 2 * self.voting.allowed_votes)?;
                 } else {
                     self.term.move_cursor_to(
-                        25 + self.candidate_selection_display.current_search_width(),
+                        25 + self
+                            .candidate_selection_display
+                            .current_search_width(&self.voting),
                         self.candidate_selection_display.current_index * 2 + 1,
                     )?;
                 }
