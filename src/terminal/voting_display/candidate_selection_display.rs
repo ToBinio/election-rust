@@ -87,7 +87,6 @@ impl CandidateSelectionDisplay {
             (Key::Char(' '), true) => {
                 voting.vote();
 
-                voting.clear_selections();
             }
             (key, false) => {
                 let selection = voting

@@ -1,6 +1,8 @@
 use crate::voting::ballot::BallotPaper;
 use crate::voting::candidate::Candidate;
 use crate::voting::candidate_selection::CandidateSelection;
+use serde::{Deserialize, Serialize};
+use std::fs;
 
 pub mod candidate;
 
@@ -8,11 +10,13 @@ pub mod ballot;
 
 pub mod candidate_selection;
 
+#[derive(Deserialize, Serialize)]
 pub struct Voting {
     pub candidate_selections: Vec<CandidateSelection>,
+
     pub candidates: Vec<Candidate>,
     pub papers: Vec<BallotPaper>,
-    invalid_count: usize,
+    invalid_vote_count: usize,
 
     pub allowed_votes: usize,
 }
@@ -28,9 +32,21 @@ impl Voting {
             candidate_selections,
             candidates,
             papers: vec![],
-            invalid_count: 0,
+            invalid_vote_count: 0,
             allowed_votes: 2,
         }
+    }
+
+    pub fn save(&self) {
+        let content = serde_json::to_string(&self).unwrap();
+        fs::write("save.json", content).unwrap();
+    }
+
+    pub fn load() -> Option<Voting> {
+        return match fs::read_to_string("save.json") {
+            Ok(content) => serde_json::from_str(&content).unwrap(),
+            Err(_) => None,
+        };
     }
 
     pub fn clear_selections(&mut self) {
@@ -74,8 +90,10 @@ impl Voting {
                 vec!["invalid".to_string(), "invalid".to_string()],
                 true,
             ));
-            self.invalid_count += 1;
+            self.invalid_vote_count += 1;
         }
+
+        self.clear_selections();
     }
 
     pub fn disable_vote(&mut self, index: usize) {
@@ -84,7 +102,7 @@ impl Voting {
         let paper = &self.papers[index];
 
         if paper.invalid {
-            self.invalid_count -= 1;
+            self.invalid_vote_count -= 1;
         } else {
             for (index, vote) in paper.voting.iter().enumerate() {
                 if let Some(candidate) = self
@@ -99,6 +117,6 @@ impl Voting {
     }
 
     pub fn invalid(&self) -> usize {
-        self.invalid_count
+        self.invalid_vote_count
     }
 }

@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
 use crate::utils::get_fitting_names;
 use crate::voting::candidate::Candidate;
 
+#[derive(Deserialize, Serialize)]
 pub struct CandidateSelection {
     pub search_text: String,
     pub selected_preview: usize,

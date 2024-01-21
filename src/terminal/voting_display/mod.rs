@@ -72,6 +72,9 @@ impl VotingDisplay {
                 .candidate_selection_display
                 .handle_keys(&key, &mut self.voting)?,
         }
+
+        self.voting.save();
+
         Ok(())
     }
 

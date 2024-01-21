@@ -28,7 +28,12 @@ fn main() {
     match cli.command {
         None => match load_candidates(FILE_PATH) {
             Ok(candidates) => {
-                let mut display = VotingDisplay::new(Voting::new(candidates));
+                let voting = match Voting::load() {
+                    None => Voting::new(candidates),
+                    Some(voting) => voting,
+                };
+
+                let mut display = VotingDisplay::new(voting);
                 while display.handle_input().unwrap() != VotingDisplayState::Done {}
             }
             Err(_) => {
