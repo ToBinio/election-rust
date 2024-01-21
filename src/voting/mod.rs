@@ -19,10 +19,10 @@ pub struct Voting {
 
 impl Voting {
     pub fn new(candidates: Vec<Candidate>) -> Voting {
-        let mut candidate_selections = vec![];
-
-        candidate_selections.push(CandidateSelection::new("First".to_string()));
-        candidate_selections.push(CandidateSelection::new("Second".to_string()));
+        let candidate_selections = vec![
+            CandidateSelection::new("First".to_string()),
+            CandidateSelection::new("Second".to_string()),
+        ];
 
         Voting {
             candidate_selections,

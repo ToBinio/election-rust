@@ -1,4 +1,3 @@
-use console::Key;
 use crate::utils::get_fitting_names;
 use crate::voting::candidate::Candidate;
 

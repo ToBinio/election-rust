@@ -1,6 +1,3 @@
-use crate::utils::get_fitting_names;
-use crate::voting::candidate::Candidate;
-use crate::voting::candidate_selection::CandidateSelection;
 use crate::voting::Voting;
 use anyhow::anyhow;
 use console::{style, Key, Term};
