@@ -1,15 +1,19 @@
 use crate::voting::ballot::BallotPaper;
 use crate::voting::candidate::Candidate;
 use crate::voting::candidate_selection::CandidateSelection;
+use console::style;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+use std::string::ToString;
 
 pub mod candidate;
 
 pub mod ballot;
 
 pub mod candidate_selection;
+
+static SELECTION_HEADER: &'static [&'static str] = &["First", "Second", "Third", "Fourth"];
 
 #[derive(Deserialize, Serialize)]
 pub struct Voting {
@@ -25,18 +29,23 @@ pub struct Voting {
 }
 
 impl Voting {
-    pub fn new<P: AsRef<Path>>(candidates: Vec<Candidate>, save_path: P) -> Voting {
-        let candidate_selections = vec![
-            CandidateSelection::new("First".to_string()),
-            CandidateSelection::new("Second".to_string()),
-        ];
+    pub fn new<P: AsRef<Path>>(
+        candidates: Vec<Candidate>,
+        save_path: P,
+        allowed_votes: usize,
+    ) -> Voting {
+        let mut candidate_selections = vec![];
+
+        for index in 0..allowed_votes {
+            candidate_selections.push(CandidateSelection::new(SELECTION_HEADER[index].to_string()))
+        }
 
         Voting {
             candidate_selections,
             candidates,
             papers: vec![],
             invalid_vote_count: 0,
-            allowed_votes: 2,
+            allowed_votes,
             save_path: save_path.as_ref().to_str().unwrap().to_string(),
         }
     }
@@ -56,27 +65,40 @@ impl Voting {
         }
     }
 
-    fn is_valid_selection(&self) -> bool {
-        let is_invalid = self
+    pub fn vote(&mut self) {
+        let votes: Vec<(bool, String)> = self
             .candidate_selections
             .iter()
             .enumerate()
-            .any(|(index, selection)| {
-                !selection.is_valid(&self.candidate_selections, &self.candidates, index)
-            });
+            .map(|(index, selection)| {
+                (
+                    selection.is_valid(&self.candidate_selections, &self.candidates, index),
+                    selection,
+                )
+            })
+            .map(|(valid, selection)| {
+                if !valid {
+                    return (valid, style("invalid").white().dim().to_string());
+                }
 
-        !is_invalid
-    }
+                (
+                    valid,
+                    selection
+                        .selected_candidate(&self.candidates)
+                        .unwrap_or(style("invalid").white().dim().to_string()),
+                )
+            })
+            .collect();
 
-    pub fn vote(&mut self) {
-        if self.is_valid_selection() {
-            let votes: Vec<String> = self
-                .candidate_selections
-                .iter()
-                .filter_map(|selection| selection.selected_candidate(&self.candidates))
-                .collect();
+        let is_valid = votes.iter().any(|(valid, _)| *valid);
 
-            'outer: for (index, vote) in votes.iter().enumerate() {
+        self.papers.push(BallotPaper::new(
+            votes.iter().map(|(_, text)| text.to_string()).collect(),
+            !is_valid,
+        ));
+
+        if is_valid {
+            'outer: for (index, (_, vote)) in votes.iter().enumerate() {
                 for candidate in &mut self.candidates {
                     if candidate.name == *vote {
                         candidate.vote(index);
@@ -84,13 +106,7 @@ impl Voting {
                     }
                 }
             }
-
-            self.papers.push(BallotPaper::new(votes, false));
         } else {
-            self.papers.push(BallotPaper::new(
-                vec!["invalid".to_string(), "invalid".to_string()],
-                true,
-            ));
             self.invalid_vote_count += 1;
         }
 

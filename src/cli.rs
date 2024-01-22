@@ -5,7 +5,11 @@ use clap::{Parser, Subcommand};
 #[command(next_line_help = true)]
 pub struct Cli {
     #[arg(short, long)]
-    pub file: Option<String>,
+    pub save_file: Option<String>,
+    #[arg(short, long)]
+    pub candidate_file: Option<String>,
+    #[arg(short, long)]
+    pub vote_count: Option<usize>,
     #[command(subcommand)]
     pub command: Option<SubCommands>,
 }

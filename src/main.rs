@@ -25,28 +25,31 @@ fn main() {
 }
 
 fn run(cli: Cli) -> anyhow::Result<()> {
+    let save_path = cli.save_file.unwrap_or("save.json".to_string());
+    let candidate_path = cli.candidate_file.unwrap_or("candidates.txt".to_string());
+
     match cli.command {
         None => {
-            let voting = load_voting("candidates.txt", "save.json")?;
+            let voting = load_voting(&candidate_path, &save_path, cli.vote_count)?;
             let mut display = VotingDisplay::new(voting);
             while display.handle_input().unwrap() != VotingDisplayState::Done {}
         }
         Some(subcommand) => match subcommand {
             SubCommands::Candidates => {
-                let mut display = CandidateDisplay::new("candidates.txt");
+                let mut display = CandidateDisplay::new(&candidate_path);
                 while display.handle_input().unwrap() != CandidateDisplayState::Done {}
             }
             SubCommands::Result => {
-                let voting = load_voting("candidates.txt", "save.json")?;
+                let voting = load_voting(&candidate_path, &save_path, cli.vote_count)?;
                 result_display::display(voting);
             }
             SubCommands::Clear => {
-                if fs::remove_file("candidates.txt").is_ok() {
-                    println!("removed candidates.txt")
+                if fs::remove_file(&candidate_path).is_ok() {
+                    println!("removed {}", &candidate_path)
                 }
 
-                if fs::remove_file("save.json").is_ok() {
-                    println!("removed save.json")
+                if fs::remove_file(&save_path).is_ok() {
+                    println!("removed {}", &save_path)
                 }
             }
         },

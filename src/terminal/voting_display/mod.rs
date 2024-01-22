@@ -1,6 +1,6 @@
 use crate::terminal::voting_display::ballot_paper_display::BallotPaperDisplay;
 use crate::terminal::voting_display::candidate_selection_display::CandidateSelectionDisplay;
-use crate::utils::elepesed_text;
+use crate::utils::elapsed_text;
 
 use crate::voting::Voting;
 
@@ -106,10 +106,13 @@ impl VotingDisplay {
                 let (above, offset) = self.ballot_display.get_list_offset(&self.term);
 
                 if offset != 0 {
-                    self.term.move_cursor_to(50, 4 * above)?;
-                } else {
                     self.term
-                        .move_cursor_to(50, 4 * self.ballot_display.current_index)?;
+                        .move_cursor_to(50, (self.voting.allowed_votes + 2) * above)?;
+                } else {
+                    self.term.move_cursor_to(
+                        50,
+                        (self.voting.allowed_votes + 2) * self.ballot_display.current_index,
+                    )?;
                 }
             }
         }
@@ -130,7 +133,7 @@ impl VotingDisplay {
                 "{}|{} {}",
                 style(candidate.get_votes()).red(),
                 candidate.get_first_votes(),
-                elepesed_text(&candidate.name, 20)
+                elapsed_text(&candidate.name, 20),
             )?;
         }
 

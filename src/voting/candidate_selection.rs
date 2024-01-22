@@ -63,3 +63,73 @@ impl CandidateSelection {
             .map(|name| name.to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::voting::ballot::BallotPaper;
+    use crate::voting::candidate::Candidate;
+    use crate::voting::candidate_selection::CandidateSelection;
+
+    static candidates: &'static [Candidate; 3] = &[
+        Candidate {
+            name: "some test".to_string(),
+            votes: vec![],
+        },
+        Candidate {
+            name: "test".to_string(),
+            votes: vec![],
+        },
+        Candidate {
+            name: "ok i think".to_string(),
+            votes: vec![],
+        },
+    ];
+
+    #[test]
+    fn constructor() {
+        let selection = CandidateSelection::new("header".to_string());
+
+        assert_eq!(selection.selected_preview, 0);
+        assert_eq!(selection.header, "header".to_string());
+        assert_eq!(selection.search_text, "".to_string());
+    }
+
+    #[test]
+    fn clear() {
+        let mut selection = CandidateSelection::new("header".to_string());
+
+        selection.search_text = "test".to_string();
+        selection.selected_preview = 5;
+
+        selection.clear();
+
+        assert_eq!(selection.selected_preview, 0);
+        assert_eq!(selection.header, "header".to_string());
+        assert_eq!(selection.search_text, "".to_string());
+    }
+
+    #[test]
+    fn is_valid() {
+        let mut selection_a = CandidateSelection::new("header".to_string());
+        selection_a.search_text = "test".to_string();
+
+        let mut selection_b = CandidateSelection::new("header2".to_string());
+        selection_b.search_text = "ok".to_string();
+
+        let selections = [selection_a, selection_b];
+
+        assert!(selections[0].is_valid(&selections, candidates, 0,));
+    }
+
+    fn is_in_valid() {
+        let mut selection_a = CandidateSelection::new("header".to_string());
+        selection_a.search_text = "test".to_string();
+
+        let mut selection_b = CandidateSelection::new("header2".to_string());
+        selection_b.search_text = "test".to_string();
+
+        let selections = [selection_a, selection_b];
+
+        assert!(!selections[0].is_valid(&selections, candidates, 0,));
+    }
+}

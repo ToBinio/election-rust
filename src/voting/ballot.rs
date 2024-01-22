@@ -16,3 +16,17 @@ impl BallotPaper {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::voting::ballot::BallotPaper;
+
+    #[test]
+    fn constructor() {
+        let paper = BallotPaper::new(vec!["test".to_string()], false);
+
+        assert_eq!(paper.voting, vec!["test".to_string()]);
+        assert_eq!(paper.invalid, false);
+        assert_eq!(paper.disabled, false);
+    }
+}
