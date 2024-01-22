@@ -13,4 +13,6 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum SubCommands {
     Candidates,
+    Result,
+    Clear,
 }

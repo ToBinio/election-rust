@@ -86,7 +86,6 @@ impl CandidateSelectionDisplay {
             }
             (Key::Char(' '), true) => {
                 voting.vote();
-
             }
             (key, false) => {
                 let selection = voting

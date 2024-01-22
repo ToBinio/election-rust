@@ -2,8 +2,6 @@ use crate::voting::candidate::Candidate;
 use std::fs;
 use std::path::Path;
 
-pub const FILE_PATH: &str = "candidates.txt";
-
 pub fn load_candidates<P: AsRef<Path>>(path: P) -> anyhow::Result<Vec<Candidate>> {
     let content = fs::read_to_string(path)?;
 

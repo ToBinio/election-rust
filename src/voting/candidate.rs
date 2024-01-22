@@ -25,7 +25,7 @@ impl Candidate {
         self.votes[0]
     }
 
-    pub fn get_sum(&self) -> usize {
+    pub fn get_votes(&self) -> usize {
         let size = self.votes.len();
 
         self.votes

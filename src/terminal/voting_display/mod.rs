@@ -119,7 +119,7 @@ impl VotingDisplay {
             write!(
                 self.term,
                 "{}|{} {}",
-                style(candidate.get_sum()).red(),
+                style(candidate.get_votes()).red(),
                 candidate.get_first_votes(),
                 elepesed_text(&candidate.name, 20)
             )?;

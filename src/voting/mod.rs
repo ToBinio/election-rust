@@ -3,6 +3,7 @@ use crate::voting::candidate::Candidate;
 use crate::voting::candidate_selection::CandidateSelection;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::path::Path;
 
 pub mod candidate;
 
@@ -19,10 +20,12 @@ pub struct Voting {
     invalid_vote_count: usize,
 
     pub allowed_votes: usize,
+
+    save_path: String,
 }
 
 impl Voting {
-    pub fn new(candidates: Vec<Candidate>) -> Voting {
+    pub fn new<P: AsRef<Path>>(candidates: Vec<Candidate>, save_path: P) -> Voting {
         let candidate_selections = vec![
             CandidateSelection::new("First".to_string()),
             CandidateSelection::new("Second".to_string()),
@@ -34,19 +37,17 @@ impl Voting {
             papers: vec![],
             invalid_vote_count: 0,
             allowed_votes: 2,
+            save_path: save_path.as_ref().to_str().unwrap().to_string(),
         }
     }
 
     pub fn save(&self) {
         let content = serde_json::to_string(&self).unwrap();
-        fs::write("save.json", content).unwrap();
+        fs::write(&self.save_path, content).unwrap();
     }
 
-    pub fn load() -> Option<Voting> {
-        return match fs::read_to_string("save.json") {
-            Ok(content) => serde_json::from_str(&content).unwrap(),
-            Err(_) => None,
-        };
+    pub fn load(content: String) -> serde_json::Result<Voting> {
+        serde_json::from_str(&content)
     }
 
     pub fn clear_selections(&mut self) {
