@@ -2,7 +2,7 @@ use crate::utils::get_fitting_names;
 use crate::voting::candidate::Candidate;
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize,Eq, PartialEq,Debug)]
 pub struct CandidateSelection {
     pub search_text: String,
     pub selected_preview: usize,
@@ -70,20 +70,22 @@ mod tests {
     use crate::voting::candidate::Candidate;
     use crate::voting::candidate_selection::CandidateSelection;
 
-    static candidates: &'static [Candidate; 3] = &[
-        Candidate {
-            name: "some test".to_string(),
-            votes: vec![],
-        },
-        Candidate {
-            name: "test".to_string(),
-            votes: vec![],
-        },
-        Candidate {
-            name: "ok i think".to_string(),
-            votes: vec![],
-        },
-    ];
+    fn get_candidates() -> [Candidate; 3] {
+        [
+            Candidate {
+                name: "time test".to_string(),
+                votes: vec![],
+            },
+            Candidate {
+                name: "test".to_string(),
+                votes: vec![],
+            },
+            Candidate {
+                name: "ok i think".to_string(),
+                votes: vec![],
+            },
+        ]
+    }
 
     #[test]
     fn constructor() {
@@ -118,9 +120,10 @@ mod tests {
 
         let selections = [selection_a, selection_b];
 
-        assert!(selections[0].is_valid(&selections, candidates, 0,));
+        assert!(selections[0].is_valid(&selections, &get_candidates(), 0,));
     }
 
+    #[test]
     fn is_in_valid() {
         let mut selection_a = CandidateSelection::new("header".to_string());
         selection_a.search_text = "test".to_string();
@@ -130,6 +133,34 @@ mod tests {
 
         let selections = [selection_a, selection_b];
 
-        assert!(!selections[0].is_valid(&selections, candidates, 0,));
+        assert!(!selections[0].is_valid(&selections, &get_candidates(), 0,));
+    }
+
+    #[test]
+    fn possible_candidate_names_works() {
+        let mut selection = CandidateSelection::new("header".to_string());
+        selection.search_text = "t".to_string();
+
+        let names = selection.possible_candidates_names(&get_candidates());
+
+        assert_eq!(names, vec!["time test", "test"])
+    }
+
+    #[test]
+    pub fn selected_candidate_works() {
+        let mut selection = CandidateSelection::new("header".to_string());
+        selection.search_text = "t".to_string();
+        selection.selected_preview = 0;
+
+        let name = selection.selected_candidate(&get_candidates());
+        assert_eq!(name, Some("time test".to_string()));
+
+        selection.selected_preview = 1;
+        let name = selection.selected_candidate(&get_candidates());
+        assert_eq!(name, Some("test".to_string()));
+
+        selection.selected_preview = 2;
+        let name = selection.selected_candidate(&get_candidates());
+        assert_eq!(name, None);
     }
 }

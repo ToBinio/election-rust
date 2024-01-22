@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug)]
 pub struct Candidate {
     pub name: String,
     pub votes: Vec<usize>,
 }
 
 impl Candidate {
-    pub fn  new(name: String, size: usize) -> Candidate {
+    pub fn new(name: String, size: usize) -> Candidate {
         Candidate {
             name,
             votes: vec![0; size],

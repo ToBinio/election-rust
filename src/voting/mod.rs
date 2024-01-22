@@ -1,6 +1,7 @@
 use crate::voting::ballot::BallotPaper;
 use crate::voting::candidate::Candidate;
 use crate::voting::candidate_selection::CandidateSelection;
+use anyhow::bail;
 use console::style;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -15,7 +16,7 @@ pub mod candidate_selection;
 
 static SELECTION_HEADER: &'static [&'static str] = &["First", "Second", "Third", "Fourth"];
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug)]
 pub struct Voting {
     pub candidate_selections: Vec<CandidateSelection>,
 
@@ -33,21 +34,25 @@ impl Voting {
         candidates: Vec<Candidate>,
         save_path: P,
         allowed_votes: usize,
-    ) -> Voting {
+    ) -> anyhow::Result<Voting> {
+        if allowed_votes > 4 {
+            bail!("vote count has to be lower than 4");
+        }
+
         let mut candidate_selections = vec![];
 
         for index in 0..allowed_votes {
             candidate_selections.push(CandidateSelection::new(SELECTION_HEADER[index].to_string()))
         }
 
-        Voting {
+        Ok(Voting {
             candidate_selections,
             candidates,
             papers: vec![],
             invalid_vote_count: 0,
             allowed_votes,
             save_path: save_path.as_ref().to_str().unwrap().to_string(),
-        }
+        })
     }
 
     pub fn save(&self) {
@@ -135,5 +140,68 @@ impl Voting {
 
     pub fn invalid(&self) -> usize {
         self.invalid_vote_count
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::voting::ballot::BallotPaper;
+    use crate::voting::candidate::Candidate;
+    use crate::voting::Voting;
+    use std::env::temp_dir;
+    use std::fs;
+
+    fn get_candidates() -> [Candidate; 3] {
+        [
+            Candidate {
+                name: "time test".to_string(),
+                votes: vec![],
+            },
+            Candidate {
+                name: "test".to_string(),
+                votes: vec![],
+            },
+            Candidate {
+                name: "ok i think".to_string(),
+                votes: vec![],
+            },
+        ]
+    }
+
+    #[test]
+    fn constructor() {
+        let voting = Voting::new(Vec::from(get_candidates()), "test.txt", 4).unwrap();
+
+        assert_eq!(voting.allowed_votes, 4);
+        assert_eq!(voting.invalid_vote_count, 0);
+        assert_eq!(voting.save_path, "test.txt");
+        assert_eq!(voting.candidates, Vec::from(get_candidates()));
+    }
+
+    #[test]
+    fn save() {
+        let temp_dir = temp_dir();
+        let save_path = temp_dir.join("save.json");
+
+        let voting = Voting::new(Vec::from(get_candidates()), &save_path, 4).unwrap();
+
+        voting.save();
+
+        assert_eq!(fs::read_to_string(&save_path).unwrap(),"{\"candidate_selections\":[{\"search_text\":\"\",\"selected_preview\":0,\"header\":\"First\"},{\"search_text\":\"\",\"selected_preview\":0,\"header\":\"Second\"},{\"search_text\":\"\",\"selected_preview\":0,\"header\":\"Third\"},{\"search_text\":\"\",\"selected_preview\":0,\"header\":\"Fourth\"}],\"candidates\":[{\"name\":\"time test\",\"votes\":[]},{\"name\":\"test\",\"votes\":[]},{\"name\":\"ok i think\",\"votes\":[]}],\"papers\":[],\"invalid_vote_count\":0,\"allowed_votes\":4,\"save_path\":\"/tmp/save.json\"}"
+        );
+    }
+
+    #[test]
+    fn load() {
+        let temp_dir = temp_dir();
+        let save_path = temp_dir.join("save.json");
+
+        let voting_a = Voting::new(Vec::from(get_candidates()), &save_path, 4).unwrap();
+
+        voting_a.save();
+
+        let voting_b = Voting::load(fs::read_to_string(save_path).unwrap()).unwrap();
+
+        assert_eq!(voting_a, voting_b);
     }
 }

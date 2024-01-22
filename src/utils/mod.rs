@@ -40,7 +40,7 @@ pub fn load_voting<P1: AsRef<Path>, P2: AsRef<Path>>(
         let allowed_votes = allowed_votes.unwrap_or(2);
 
         match load_candidates(&candidate, allowed_votes) {
-            Ok(candidates) => Ok(Voting::new(candidates, save, allowed_votes)),
+            Ok(candidates) => Ok(Voting::new(candidates, save, allowed_votes)?),
             Err(_) => bail!(
                 "could not file {:?} or {:?}",
                 candidate.as_ref(),
