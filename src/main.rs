@@ -4,9 +4,7 @@ use crate::terminal::result_display;
 use crate::terminal::voting_display::{VotingDisplay, VotingDisplayState};
 use crate::utils::load_voting;
 use clap::Parser;
-use console::Term;
 use std::fs;
-use std::process::exit;
 
 mod terminal;
 mod utils;
@@ -17,14 +15,6 @@ mod voting;
 
 fn main() {
     let cli = Cli::parse();
-
-    let _ = ctrlc::set_handler(|| {
-        let term = Term::stdout();
-        term.clear_last_lines(term.size().0 as usize).unwrap();
-        term.show_cursor().unwrap();
-
-        exit(0);
-    });
 
     match run(cli) {
         Ok(_) => {}

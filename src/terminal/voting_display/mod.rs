@@ -6,6 +6,7 @@ use crate::voting::Voting;
 
 use console::{style, Key, Term};
 use std::io::Write;
+use std::process::exit;
 
 pub mod candidate_selection_display;
 
@@ -24,6 +25,14 @@ pub struct VotingDisplay {
 
 impl VotingDisplay {
     pub fn new(voting: Voting) -> VotingDisplay {
+        let _ = ctrlc::set_handler(|| {
+            let term = Term::stdout();
+            term.clear_last_lines(term.size().0 as usize).unwrap();
+            term.show_cursor().unwrap();
+
+            exit(0);
+        });
+
         VotingDisplay {
             term: Term::buffered_stdout(),
             voting,
