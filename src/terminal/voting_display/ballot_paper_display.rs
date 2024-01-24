@@ -1,5 +1,6 @@
 use crate::voting::ballot::BallotPaper;
 
+use crate::utils::elapsed_text;
 use crate::voting::Voting;
 use console::{style, Key, Term};
 use std::io::Write;
@@ -14,11 +15,11 @@ impl BallotPaperDisplay {
     }
 
     /// returns (how many elements above center, offset)
-    pub fn get_list_offset(&self, term: &Term) -> (usize, usize) {
+    pub fn get_list_offset(&self, term: &Term, voting: &Voting) -> (usize, usize) {
         let height = term.size().0 as usize;
 
         //todo not for 4
-        let visible_papers = height / 4;
+        let visible_papers = height / (voting.allowed_votes + 2);
         let above = visible_papers / 2;
 
         (
@@ -31,18 +32,18 @@ impl BallotPaperDisplay {
         &mut self,
         term: &mut Term,
         start_x: usize,
-        _width: usize,
-        papers: &[BallotPaper],
+        width: usize,
+        voting: &Voting,
     ) -> anyhow::Result<()> {
         term.move_cursor_to(start_x, 0)?;
 
-        let (_, offset) = self.get_list_offset(term);
+        let (_, offset) = self.get_list_offset(term, voting);
 
         let height = term.size().0 as usize;
 
         let mut y = 0;
 
-        for (index, paper) in papers[(offset)..].iter().enumerate() {
+        for (index, paper) in voting.papers[(offset)..].iter().enumerate() {
             if y > height {
                 break;
             }
@@ -62,9 +63,9 @@ impl BallotPaperDisplay {
             for name in &paper.voting {
                 term.move_cursor_to(start_x, y)?;
                 if paper.disabled {
-                    write!(term, "{}", style(name).dim().white())?;
+                    write!(term, "{}", style(elapsed_text(name, width)).dim().white())?;
                 } else {
-                    write!(term, "{}", style(name))?;
+                    write!(term, "{}", elapsed_text(name, width))?;
                 }
                 y += 1;
             }

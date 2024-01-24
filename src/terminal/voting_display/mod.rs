@@ -45,13 +45,17 @@ impl VotingDisplay {
     pub fn handle_input(&mut self) -> anyhow::Result<VotingDisplayState> {
         self.term.clear_last_lines(self.term.size().0 as usize)?;
 
-        self.display_candidates(0, 20)?;
-        self.candidate_selection_display
-            .display(&mut self.term, 25, 20, &self.voting)?;
-        self.ballot_display
-            .display(&mut self.term, 50, 25, &self.voting.papers)?;
+        let width = self.term.size().1 as usize;
+        let width_per = width / 3;
+        let width = (width_per - 5).max(0);
 
-        self.position_cursor()?;
+        self.display_candidates(0, width)?;
+        self.candidate_selection_display
+            .display(&mut self.term, width_per, width, &self.voting)?;
+        self.ballot_display
+            .display(&mut self.term, width_per * 2, width, &self.voting)?;
+
+        self.position_cursor(width_per)?;
 
         self.term.flush()?;
 
@@ -87,30 +91,33 @@ impl VotingDisplay {
         Ok(())
     }
 
-    pub fn position_cursor(&mut self) -> anyhow::Result<()> {
+    pub fn position_cursor(&mut self, width_per: usize) -> anyhow::Result<()> {
         match self.mode {
             VotingDisplayMode::New => {
                 if self.candidate_selection_display.is_on_done(&self.voting) {
                     self.term
-                        .move_cursor_to(25, 2 * self.voting.allowed_votes)?;
+                        .move_cursor_to(width_per, 2 * self.voting.allowed_votes)?;
                 } else {
                     self.term.move_cursor_to(
-                        25 + self
-                            .candidate_selection_display
-                            .current_search_width(&self.voting),
+                        width_per
+                            + self
+                                .candidate_selection_display
+                                .current_search_width(&self.voting),
                         self.candidate_selection_display.current_index * 2 + 1,
                     )?;
                 }
             }
             VotingDisplayMode::Edit => {
-                let (above, offset) = self.ballot_display.get_list_offset(&self.term);
+                let (above, offset) = self
+                    .ballot_display
+                    .get_list_offset(&self.term, &self.voting);
 
                 if offset != 0 {
                     self.term
-                        .move_cursor_to(50, (self.voting.allowed_votes + 2) * above)?;
+                        .move_cursor_to(width_per * 2, (self.voting.allowed_votes + 2) * above)?;
                 } else {
                     self.term.move_cursor_to(
-                        50,
+                        width_per * 2,
                         (self.voting.allowed_votes + 2) * self.ballot_display.current_index,
                     )?;
                 }
@@ -120,7 +127,7 @@ impl VotingDisplay {
         Ok(())
     }
 
-    fn display_candidates(&mut self, start_x: usize, _width: usize) -> anyhow::Result<()> {
+    fn display_candidates(&mut self, start_x: usize, width: usize) -> anyhow::Result<()> {
         self.term.move_cursor_to(start_x, 0)?;
         writeln!(self.term, "{}", style("Candidates").bold())?;
         writeln!(self.term, "{} Invalid", self.voting.invalid())?;
@@ -133,7 +140,7 @@ impl VotingDisplay {
                 "{}|{} {}",
                 style(candidate.get_votes()).red(),
                 candidate.get_first_votes(),
-                elapsed_text(&candidate.name, 20),
+                elapsed_text(&candidate.name, width),
             )?;
         }
 

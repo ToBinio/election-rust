@@ -2,7 +2,7 @@ use crate::utils::get_fitting_names;
 use crate::voting::candidate::Candidate;
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize,Eq, PartialEq,Debug)]
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug)]
 pub struct CandidateSelection {
     pub search_text: String,
     pub selected_preview: usize,

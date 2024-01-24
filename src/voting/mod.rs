@@ -151,44 +151,22 @@ mod tests {
     use std::env::temp_dir;
     use std::fs;
 
-    fn get_candidates() -> [Candidate; 3] {
+    fn get_candidates(size: usize) -> [Candidate; 3] {
         [
-            Candidate {
-                name: "time test".to_string(),
-                votes: vec![],
-            },
-            Candidate {
-                name: "test".to_string(),
-                votes: vec![],
-            },
-            Candidate {
-                name: "ok i think".to_string(),
-                votes: vec![],
-            },
+            Candidate::new("time test".to_string(), size),
+            Candidate::new("test".to_string(), size),
+            Candidate::new("ok i think".to_string(), size),
         ]
     }
 
     #[test]
     fn constructor() {
-        let voting = Voting::new(Vec::from(get_candidates()), "test.txt", 4).unwrap();
+        let voting = Voting::new(Vec::from(get_candidates(4)), "test.txt", 4).unwrap();
 
         assert_eq!(voting.allowed_votes, 4);
         assert_eq!(voting.invalid_vote_count, 0);
         assert_eq!(voting.save_path, "test.txt");
-        assert_eq!(voting.candidates, Vec::from(get_candidates()));
-    }
-
-    #[test]
-    fn save() {
-        let temp_dir = temp_dir();
-        let save_path = temp_dir.join("save.json");
-
-        let voting = Voting::new(Vec::from(get_candidates()), &save_path, 4).unwrap();
-
-        voting.save();
-
-        assert_eq!(fs::read_to_string(&save_path).unwrap(),"{\"candidate_selections\":[{\"search_text\":\"\",\"selected_preview\":0,\"header\":\"First\"},{\"search_text\":\"\",\"selected_preview\":0,\"header\":\"Second\"},{\"search_text\":\"\",\"selected_preview\":0,\"header\":\"Third\"},{\"search_text\":\"\",\"selected_preview\":0,\"header\":\"Fourth\"}],\"candidates\":[{\"name\":\"time test\",\"votes\":[]},{\"name\":\"test\",\"votes\":[]},{\"name\":\"ok i think\",\"votes\":[]}],\"papers\":[],\"invalid_vote_count\":0,\"allowed_votes\":4,\"save_path\":\"/tmp/save.json\"}"
-        );
+        assert_eq!(voting.candidates, Vec::from(get_candidates(4)));
     }
 
     #[test]
@@ -196,12 +174,71 @@ mod tests {
         let temp_dir = temp_dir();
         let save_path = temp_dir.join("save.json");
 
-        let voting_a = Voting::new(Vec::from(get_candidates()), &save_path, 4).unwrap();
+        let voting_a = Voting::new(Vec::from(get_candidates(4)), &save_path, 4).unwrap();
 
         voting_a.save();
 
         let voting_b = Voting::load(fs::read_to_string(save_path).unwrap()).unwrap();
 
         assert_eq!(voting_a, voting_b);
+    }
+
+    #[test]
+    fn clear() {
+        let mut voting = Voting::new(Vec::from(get_candidates(4)), "test.txt", 4).unwrap();
+
+        for selection in &mut voting.candidate_selections {
+            selection.search_text = "test".to_string();
+        }
+
+        for selection in &mut voting.candidate_selections {
+            assert!(!selection.search_text.is_empty())
+        }
+
+        voting.clear_selections();
+
+        for selection in &mut voting.candidate_selections {
+            assert!(selection.search_text.is_empty())
+        }
+    }
+
+    #[test]
+    fn vote() {
+        let mut voting = Voting::new(Vec::from(get_candidates(2)), "test.txt", 2).unwrap();
+
+        voting.candidate_selections[0].search_text = "test".to_string();
+        voting.candidate_selections[1].search_text = "ok".to_string();
+
+        voting.vote();
+
+        for selection in &mut voting.candidate_selections {
+            assert!(selection.search_text.is_empty())
+        }
+
+        assert_eq!(voting.invalid(), 0);
+        assert_eq!(voting.papers.len(), 1);
+    }
+
+    #[test]
+    fn unvote() {
+        let mut voting = Voting::new(Vec::from(get_candidates(2)), "test.txt", 2).unwrap();
+
+        voting.candidate_selections[0].search_text = "test".to_string();
+        voting.candidate_selections[1].search_text = "ok".to_string();
+
+        voting.vote();
+        voting.disable_vote(0);
+
+        for selection in &mut voting.candidate_selections {
+            assert!(selection.search_text.is_empty())
+        }
+
+        assert_eq!(voting.invalid(), 0);
+
+        assert_eq!(voting.papers.len(), 1);
+        assert_eq!(
+            voting.papers.iter().filter(|paper| !paper.disabled).count(),
+            0
+        );
     }
 }

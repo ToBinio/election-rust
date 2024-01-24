@@ -1,3 +1,4 @@
+use crate::utils::elapsed_text;
 use crate::voting::Voting;
 use anyhow::anyhow;
 use console::{style, Key, Term};
@@ -22,7 +23,7 @@ impl CandidateSelectionDisplay {
         &self,
         term: &mut Term,
         start_x: usize,
-        _width: usize,
+        width: usize,
         voting: &Voting,
     ) -> anyhow::Result<()> {
         for (index, candidate_selection) in voting.candidate_selections.iter().enumerate() {
@@ -45,19 +46,23 @@ impl CandidateSelectionDisplay {
             }
 
             term.move_cursor_to(start_x, y + 1)?;
-            write!(term, "{}", style(preview).green())?;
+            write!(term, "{}", style(elapsed_text(&preview, width)).green())?;
 
             term.move_cursor_to(start_x, y + 1)?;
-            write!(term, "{}", candidate_selection.search_text)?;
+            write!(
+                term,
+                "{}",
+                elapsed_text(&candidate_selection.search_text, width)
+            )?;
         }
 
         //render done-button
         if self.is_on_done(voting) {
-            term.move_cursor_to(25, 2 * voting.allowed_votes)?;
+            term.move_cursor_to(start_x, 2 * voting.allowed_votes)?;
 
             write!(term, "{}", style("Done").on_yellow().bold())?;
         } else {
-            term.move_cursor_to(25, 2 * voting.allowed_votes)?;
+            term.move_cursor_to(start_x, 2 * voting.allowed_votes)?;
             write!(term, "{}", style("Done").yellow().bold())?;
 
             let selected_selection = voting
@@ -66,7 +71,7 @@ impl CandidateSelectionDisplay {
                 .ok_or(anyhow!("invalid selection index"))?;
 
             term.move_cursor_to(
-                25 + selected_selection.search_text.len(),
+                start_x + selected_selection.search_text.len(),
                 self.current_index * 2 + 1,
             )?;
         }

@@ -1,7 +1,8 @@
+use clap::ColorChoice;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about, long_about = None,color = ColorChoice::Always)]
 #[command(next_line_help = true)]
 pub struct Cli {
     #[arg(short, long)]
